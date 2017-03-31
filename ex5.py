@@ -2,7 +2,6 @@ import numpy as np
 import random
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib
 import csv
 from matplotlib import cm
 
@@ -70,31 +69,72 @@ def train_and_plot(xtrain,ytrain,xtest,ytest,training_method,learn_rate=0.1,nite
 def read_file(file):
     data = np.genfromtxt(file, delimiter='\t', dtype=float)
     return data
-def Lsimple(w):
-    return np.square(logistic_wx(w,[1,0])-1) + np.square(logistic_wx(w,[0,1])-1) \
-    + np.square(logistic_wx(w,[1,1])-1)
+
+def L_simple_function(w):
+    L = (logistic_wx(w, [1,0])-1)**2+(logistic_wx(w, [0,1]))**2+(logistic_wx(w, [1,1])-1)**2
+    return L
+
+def log_der(w, x):
+    x1 = x[0]
+    x2 = x[1]
+    dw1 = (x1*np.exp(np.inner(w,x)))/((1+np.exp(np.inner(w,x)))**2)
+    dw2 = (x2*np.exp(np.inner(w,x)))/((1+np.exp(np.inner(w,x)))**2)
+    return [dw1, dw2]
+
+def l_simple_der(w):
+    dl_simple_w1 = 2*(logistic_wx(w,[1,0])-1)*log_der(w,[1,0])[0] + 2*logistic_wx(w,[0,1])*log_der(w,[0,1])[0] + 2*(logistic_wx(w,[1,1])-1)*log_der(w,[1,1])[0]
+    dl_simple_w2 = 2*(logistic_wx(w,[1,0])-1)*log_der(w,[1,0])[1] + 2*logistic_wx(w,[0,1])*log_der(w,[0,1])[1] + 2*(logistic_wx(w,[1,1])-1)*log_der(w,[1,1])[1]
+
+    return [dl_simple_w1, dl_simple_w2]
+
+def gradient_descent(dim, learning_rate, n_iter=1000):
+    w = np.random.rand(dim)
+    for i in range(2):
+        for n in range(n_iter):
+            w[i] = w[i] -learning_rate*l_simple_der(w)[i]
+    return w
 
 
 def main():
     test = read_file('data/data_small_nonsep_test.csv')
-    w1 = range(-6,7)
-    w2 = range(-6,7)
-    print w1
-    #print test
-    #w = np.column_stack((test[:][0],test[:][1]))
-    w = np.column_stack((w1,w2))
-    #w = np.array([-2,-2], [-1,-1], [0,0])
-    #w = test[:, [0,1]]
-    print w
-    simple = Lsimple(w)
-    print simple
 
+    # Task 1.1
+    x = np.arange(-6,6,0.1)
+    y = np.arange(-6,6,0.1)
+    X, Y = np.meshgrid(x, y)
+    print X.shape
+    Z=np.zeros(X.shape)
+    for i in xrange(X.shape[0]):
+        for j in xrange(X.shape[1]):
+            Z[i,j]=L_simple_function((X[i,j],Y[i,j]))
+    print np.argmin(Z)
+    title = 'L_simple, min= ' + str(round(np.min(Z),5)) 
+    plt.pcolormesh(X,Y,Z)
+    plt.colorbar()
+    plt.title(title)
+    #plt.show()
 
-    fig, ax = plt.subplots()
-    ax.plot(simple)
-    ax.grid(True)
+    #Task 1.2
 
+    learning_rate = [0.0001, 0.01, 0.1, 1, 10, 100]
+    w_n = [0]*len(learning_rate)
+    l_simple_n = [0]*len(learning_rate)
 
+    #fig = plt.figure()
+    for i in range(len(learning_rate)):
+        w_n[i] = gradient_descent(2, learning_rate[i]) #dimension of w=2, w1 and w2
+        l_simple_n[i] = L_simple_function(w_n[i])
+        print(w_n[i],l_simple_n[i])
+        # ax = fig.add_subplot(3,2,i+1)
+        # print l_simple_n[i]
+        # ax.plot(l_simple_n[i])
+        # title = 'L_rate= ' + str(learning_rate[i])
+        # ax.set_title(title)
+
+    plt.figure()
+    plt.plot(learning_rate,l_simple_n, )
     plt.show()
+
+
     
 main()
